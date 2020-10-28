@@ -45,13 +45,9 @@ def getNextDate(filepointer):
     return nextDate
 
 def insertGametime(start,end):
-    # TODO: filter duplicates
-    #find row
-    #row = data.loc[start]
     if start is None or end is None:
         print("ERROR: start or end is None!")
         return
-
 
     index = start.replace(minute=0,second=0)
     indexString = index.strftime('%Y-%m-%d %H:%M:%S')
@@ -77,32 +73,27 @@ def insertGametime(start,end):
 
 gametimes = {}
 
+#read files
 for f in onlyfiles:
 
     with open("../data/"+f,'r') as fp:
-
         start = getNextDate(fp)
-        print(start)
         end = getNextDate(fp)
-        print(end)
         gametimes[start.strftime('%Y-%m-%d %H:%M:%S')] = end.strftime('%Y-%m-%d %H:%M:%S')
 
         while start is not None and end is not None:
             gametimes[start.strftime('%Y-%m-%d %H:%M:%S')] = end.strftime('%Y-%m-%d %H:%M:%S')
             start = getNextDate(fp)
-            print(start)
             end = getNextDate(fp)
-            print(end)
-            #insertGametime(start,end)
-
         fp.close();
 
-#print(gametimes)
-
+#insert into dataframe
 for start in gametimes:
     insertGametime(parser.parse(start),parser.parse(gametimes[start]))
 
-print(data)
+
+#remove zero rows
+data = data[data['gt'] != 0]
 
 maxvalue = data['gt'].max()
 print("max value of gt: "+str(maxvalue))
@@ -113,10 +104,35 @@ print("min value of gt: "+str(minvalue))
 sum = data['gt'].sum()
 print("gametime in hours: "+str(sum/3600))
 
+# plot
+#plt.figure()
+#data['gt'].plot()
+#plt.show()
 
+def getWeekday(datestring):
+    return parser.parse(datestring).weekday()
+
+def removeClock(datestring):
+    return datestring[0:10]
+
+data['day'] = list(map(removeClock,data.index.format()))
+data['weekday'] = list(map(getWeekday, data.index.format()))
+
+#print(data)
+
+collapseByDay = data.groupby('day').agg({'gt':'sum', 'weekday':'first'})
+print(collapseByDay)
 plt.figure()
-data['gt'].plot()
+collapseByDay['gt'].plot()
 plt.show()
+
+collapseByWeekDay = data.groupby('weekday').agg({'gt':'mean'})
+plt.figure()
+collapseByWeekDay['gt'].plot()
+plt.show()
+
+
+
 
 """
     line = fp.readline()
