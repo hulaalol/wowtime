@@ -19,7 +19,7 @@ def nearest(items, pivot):
 onlyfiles = [f for f in listdir("../data/") if isfile(join("../data/", f))]
 
 s = pd.Period("2016-01",freq="M")
-e = pd.Period("2019-12",freq="M")
+e = pd.Period("2021-06",freq="M")
 
 data = pd.Series(pd.date_range(start=s.start_time, end = e.end_time, freq="H")).to_frame("date")
 data['gt'] = np.zeros(len(data))
@@ -93,7 +93,7 @@ for start in gametimes:
 
 
 #remove zero rows
-data = data[data['gt'] != 0]
+#data = data[data['gt'] != 0]
 
 maxvalue = data['gt'].max()
 print("max value of gt: "+str(maxvalue))
@@ -115,13 +115,35 @@ def getWeekday(datestring):
 def removeClock(datestring):
     return datestring[0:10]
 
+def assignWeek(weekdays):
+    weeks = []
+    weekIndex = 0
+    block = False
+    for w in weekdays:
+        if(w == 0 and not block):
+            weekIndex += 1
+            block = True
+        if(w == 6 and block):
+            block = False
+
+        weeks.append(weekIndex)
+    return weeks
+
+def getMonth(datestring):
+    return datestring[0:7]
+
+
 data['day'] = list(map(removeClock,data.index.format()))
 data['weekday'] = list(map(getWeekday, data.index.format()))
+data['month'] = list(map(getMonth, data.index.format()))
 
-#print(data)
+weeks = assignWeek(data['weekday'])
+data['week'] = weeks
+
+print(data)
 
 collapseByDay = data.groupby('day').agg({'gt':'sum', 'weekday':'first'})
-print(collapseByDay)
+#print(collapseByDay)
 plt.figure()
 collapseByDay['gt'].plot()
 plt.show()
@@ -131,33 +153,10 @@ plt.figure()
 collapseByWeekDay['gt'].plot()
 plt.show()
 
+collapseByWeek = data.groupby('week').agg({'gt':'sum'})
+collapseByWeek['gt'].plot.bar(x='week', y='gt', rot=0)
+plt.show()
 
-
-
-"""
-    line = fp.readline()
-        while line:
-                try:
-                    startDate = parser.parse(line)
-
-                    # skip lines with tabs and spaces
-                    line = fp.readline()
-                    endDate = None
-
-                    while endDate is None:
-                        try:
-                            endDate = parser.parse(line)
-                            line = fp.readline()
-                        except ValueError:
-                            print("searching for endDate...")
-
-                    gt = float(line)
-                    n = nearest(data[0,:] , startDate)
-                    data[data[0] == n] += gt
-
-                    print("success")
-                except ValueError:
-                    print("Skip introduction lines...")
-                line = fp.readline()
-    
-    """
+collapseByMonth = data.groupby('month').agg({'gt':'sum'})
+collapseByMonth['gt'].plot.bar(x='month', y='gt', rot=90)
+plt.show()
